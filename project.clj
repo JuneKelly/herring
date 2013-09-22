@@ -7,12 +7,15 @@
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [com.novemberain/monger "1.5.0"]
                  [com.novemberain/langohr "1.4.1"]
-                 [environ "0.4.0"]]
+                 [environ "0.4.0"]
+                 [org.mindrot/jbcrypt "0.3m"]
+                 [org.clojure/data.json "0.2.3"]]
 
   :plugins [[lein-environ "0.4.0"]]
 
   :profiles {
-    :production {:env {}}
+    :production {:env {:broker-url "none"
+                       :db-url "none"}}
     :dev {:env {:broker-url "amqp://localhost:5672"
                 :db-url "mongodb://localhost/herring"}}}
 

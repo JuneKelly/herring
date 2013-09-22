@@ -2,4 +2,4 @@
   (:require [environ.core :refer [env]]))
 
 
-(def config (env))
+(def config env)
