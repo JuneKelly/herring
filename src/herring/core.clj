@@ -40,11 +40,16 @@
   [ch {:keys [content-type delivery-tag type] :as meta} ^bytes payload]
   (if (= content-type "application/json")
     (do
+      (println "<< in auth-handler >>")
       (let [data (json/read-str (String. payload "UTF-8"))
             username (get data "username")
             password (get data "password")
             response-key (get data "responseKey")
             response-payload (json/write-str (authenticate-user username password))]
+        (println (clojure.string/join ", " [username
+                                            password
+                                            response-key
+                                            response-payload]))
         (lb/publish ch
                     response-exchange
                     response-key
