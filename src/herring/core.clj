@@ -4,14 +4,15 @@
             [langohr.queue     :as lq]
             [langohr.consumers :as lc]
             [langohr.basic     :as lb]
+            [langohr.exchange  :as le]
             [herring.db :as db]
             [clojure.data.json :as json])
   (:import [org.mindrot.jbcrypt BCrypt]))
 
 
-;; Queues:
-;; herring.create_user
-;; herring.authenticate_user
+(def herring-exchange "herring")
+(def response-exchange "herring_response")
+
 
 ;; Create User
 (defn create-user [username password-hash]
@@ -42,17 +43,21 @@
       (let [data (json/read-str (String. payload "UTF-8"))
             username (get data "username")
             password (get data "password")
-            response-queue (get data "responseQueue")
-            response (json/write-str (authenticate-user username password))]
-        (comment "need to send back the response")))
+            response-key (get data "responseKey")
+            response-payload (json/write-str (authenticate-user username password))]
+        (lb/publish ch
+                    response-exchange
+                    response-key
+                    response-payload)
+        (lb/ack ch delivery-tag))
     (do
-      (comment "send back response specifying application/json"))))
+      (comment "send back response specifying application/json")))))
 
 
 (defn start-auth-consumer [ch ex-name]
   (let [q-name "herring.auth"
         thread (Thread.
-                 #(lc/subscribe ch q-name auth-handler))]
+                 #(lc/subscribe ch q-name auth-handler :auto-ack false))]
     (lq/declare ch q-name :exclusive false :auto-delete true)
     (lq/bind ch q-name ex-name :routing-key "herring.auth")
     (.start thread)))
@@ -68,8 +73,8 @@
 (defn -main [& args]
   (println "Launching Herring...")
   (let [conn (rmq/connect)
-        ch   (lch/open conn)
-        ex-name   "herring"]
+        ch   (lch/open conn)]
     (println "Starting herring...")
-    (le/declare ch ex-name "direct")
-    (start-consumers ch ex-name)))
+    (le/declare ch herring-exchange "direct" :durable false :auto-delete true)
+    (le/declare ch response-exchange "direct" :durable false :auto-delete true)
+    (start-consumers ch herring-exchange)))
