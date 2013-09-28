@@ -91,8 +91,8 @@
 
 (defn -main [& args]
   (println "Launching Herring...")
-  (let [conn (rmq/connect {:host (get config :broker-host)
-                           :port (get config :broker-port)})
+  (let [conn (rmq/connect {:host (:broker-host config)
+                           :port (:broker-port config)})
         ch   (lch/open conn)]
     (println "Starting herring...")
     (le/declare ch herring-exchange
