@@ -6,7 +6,8 @@
             [langohr.basic     :as lb]
             [langohr.exchange  :as le]
             [herring.db :as db]
-            [clojure.data.json :as json])
+            [clojure.data.json :as json]
+            [herring.env :refer [config]])
   (:import [org.mindrot.jbcrypt BCrypt]))
 
 
@@ -27,7 +28,10 @@
 
 
 ;; Request Authentication for User
-(defn authenticate-user [username password-raw]
+(defn authenticate-user
+  "Retrieve user details from db and check against supplied
+   credentials, return map describing the result"
+  [username password-raw]
   (if-let [user (db/get-user username)]
     (if (BCrypt/checkpw password-raw (:pass user))
       {:authenticated true}
@@ -37,6 +41,7 @@
 
 ;; Handlers
 (defn auth-handler
+  "Handle requests for authentication"
   [ch {:keys [content-type delivery-tag type] :as meta} ^bytes payload]
   (println "<< in auth-handler >>") ;; debug
   (if (= content-type "application/json")
@@ -45,10 +50,10 @@
             username (get data "username")
             password (get data "password")
             response-key (get data "responseKey")
-            response-payload (json/write-str (authenticate-user username password))]
+            response-payload (json/write-str
+                               (authenticate-user username password))]
         (println "RECEIVED:"
                  (clojure.string/join ", " [username
-                                            password
                                             response-key
                                             response-payload]))
         (lb/publish ch
@@ -58,10 +63,15 @@
                     :content-type "application/json")
         (lb/ack ch delivery-tag)))
     (do
-      (println "WARNING: message with content-type" content-type "received"))))
+      (println "WARNING: message with content-type"
+               content-type
+               "received"))))
 
 
-(defn start-auth-consumer [ch ex-name]
+(defn start-auth-consumer
+  "Declare an auth queue, bind to the exchange and
+  subscribe to the queue"
+  [ch ex-name]
   (let [q-name "herring.auth"
         thread (Thread.
                  #(lc/subscribe ch q-name auth-handler :auto-ack false))]
@@ -71,7 +81,9 @@
 
 
 ;; Service startup
-(defn start-consumers [ch ex-name]
+(defn start-consumers
+  "Start the Herring service"
+  [ch ex-name]
   (do
     (println "Starting AMQP consumers...")
     (start-auth-consumer ch ex-name)))
@@ -79,9 +91,12 @@
 
 (defn -main [& args]
   (println "Launching Herring...")
-  (let [conn (rmq/connect)
+  (let [conn (rmq/connect {:host (get config :broker-host)
+                           :port (get config :broker-port)})
         ch   (lch/open conn)]
     (println "Starting herring...")
-    (le/declare ch herring-exchange "direct" :durable false :auto-delete true)
-    (le/declare ch response-exchange "direct" :durable false :auto-delete true)
+    (le/declare ch herring-exchange
+                "direct" :durable false :auto-delete true)
+    (le/declare ch response-exchange
+                "direct" :durable false :auto-delete true)
     (start-consumers ch herring-exchange)))

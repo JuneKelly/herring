@@ -14,9 +14,10 @@
   :plugins [[lein-environ "0.4.0"]]
 
   :profiles {
-    :production {:env {:broker-url "none"
+    :production {:env {:broker-host "none"
                        :db-url "none"}}
-    :dev {:env {:broker-url "amqp://localhost:5672"
+    :dev {:env {:broker-host "localhost"
+                :broker-port 5672
                 :db-url "mongodb://localhost/herring"}}}
 
   :main herring.core)
