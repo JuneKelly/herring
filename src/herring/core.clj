@@ -53,7 +53,8 @@
         (lb/publish ch
                     response-exchange
                     response-key
-                    response-payload)
+                    response-payload
+                    :content-type "application/json")
         (lb/ack ch delivery-tag))
     (do
       (comment "send back response specifying application/json")))))
