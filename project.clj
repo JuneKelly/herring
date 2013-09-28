@@ -14,9 +14,7 @@
   :plugins [[lein-environ "0.4.0"]]
 
   :profiles {
-    :production {:env {:broker-host nil
-                       :broker-port nil
-                       :db-url nil}}
+    :production {:env {}}
     :dev {:env {:broker-host "localhost"
                 :broker-port 5672
                 :db-url "mongodb://localhost/herring"}}}
