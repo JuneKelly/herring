@@ -38,15 +38,16 @@
 ;; Handlers
 (defn auth-handler
   [ch {:keys [content-type delivery-tag type] :as meta} ^bytes payload]
+  (println "<< in auth-handler >>") ;; debug
   (if (= content-type "application/json")
     (do
-      (println "<< in auth-handler >>")
       (let [data (json/read-str (String. payload "UTF-8"))
             username (get data "username")
             password (get data "password")
             response-key (get data "responseKey")
             response-payload (json/write-str (authenticate-user username password))]
-        (println (clojure.string/join ", " [username
+        (println "RECEIVED:"
+                 (clojure.string/join ", " [username
                                             password
                                             response-key
                                             response-payload]))
@@ -55,9 +56,9 @@
                     response-key
                     response-payload
                     :content-type "application/json")
-        (lb/ack ch delivery-tag))
+        (lb/ack ch delivery-tag)))
     (do
-      (comment "send back response specifying application/json")))))
+      (println "WARNING: message with content-type" content-type "received"))))
 
 
 (defn start-auth-consumer [ch ex-name]
