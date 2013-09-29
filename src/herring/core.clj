@@ -12,7 +12,6 @@
 
 
 (def herring-exchange "herring")
-(def response-exchange "herring_response")
 
 
 ;; Create User
@@ -42,23 +41,23 @@
 ;; Handlers
 (defn auth-handler
   "Handle requests for authentication"
-  [ch {:keys [content-type delivery-tag type] :as meta} ^bytes payload]
+  [ch {:keys [content-type delivery-tag type reply-to] :as meta} ^bytes payload]
   (println "<< in auth-handler >>") ;; debug
+  (println "<< meta : " meta)
   (if (= content-type "application/json")
     (do
       (let [data (json/read-str (String. payload "UTF-8"))
             username (get data "username")
             password (get data "password")
-            response-key (get data "responseKey")
             response-payload (json/write-str
                                (authenticate-user username password))]
         (println "RECEIVED:"
                  (clojure.string/join ", " [username
-                                            response-key
+                                            reply-to
                                             response-payload]))
         (lb/publish ch
-                    response-exchange
-                    response-key
+                    ""
+                    reply-to
                     response-payload
                     :content-type "application/json")
         (lb/ack ch delivery-tag)))
@@ -96,7 +95,5 @@
         ch   (lch/open conn)]
     (println "Starting herring...")
     (le/declare ch herring-exchange
-                "direct" :durable false :auto-delete true)
-    (le/declare ch response-exchange
                 "direct" :durable false :auto-delete true)
     (start-consumers ch herring-exchange)))
