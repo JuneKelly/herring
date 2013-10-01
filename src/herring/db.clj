@@ -6,12 +6,14 @@
             [herring.util :refer [datetime]]))
 
 
-(mg/connect-via-uri! (:db-url config))
+(mg/connect-via-uri! (config :db-url))
+
 
 ;; Create User
 (defn create-user [username password-hash]
   (let [doc {:_id username, :pass password-hash, :created datetime}]
     (mc/insert "users" doc)))
+
 
 ;; Retrieve User
 (defn get-user [username]

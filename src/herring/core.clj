@@ -72,8 +72,10 @@
   subscribe to the queue"
   [ch ex-name]
   (let [q-name "herring.auth"
-        thread (Thread.
-                 #(lc/subscribe ch q-name auth-handler :auto-ack false))]
+        thread (Thread. #(lc/subscribe ch
+                                       q-name
+                                       auth-handler
+                                       :auto-ack false))]
     (lq/declare ch q-name :exclusive false :auto-delete true)
     (lq/bind ch q-name ex-name :routing-key "herring.auth")
     (.start thread)))
@@ -88,12 +90,13 @@
     (start-auth-consumer ch ex-name)))
 
 
+;; Main
 (defn -main [& args]
   (println "Launching Herring...")
-  (let [conn (rmq/connect {:host (:broker-host config)
-                           :port (:broker-port config)})
+  (let [conn (rmq/connect {:host (config :broker-host)
+                           :port (config :broker-port)})
         ch   (lch/open conn)]
     (println "Starting herring...")
-    (le/declare ch herring-exchange
-                "direct" :durable false :auto-delete true)
+    (le/declare ch herring-exchange "direct"
+                :durable false :auto-delete true)
     (start-consumers ch herring-exchange)))
